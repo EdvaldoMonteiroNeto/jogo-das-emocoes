@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🧠 Jogo das Emoções - FAM</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex; justify-content: center; align-items: center;
+            padding: 10px; color: white; overflow: hidden;
+        }
+
+        .screen {
+            max-width: 900px; width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px); border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: none; animation: fadeIn 0.4s ease-out;
+            max-height: 95vh; overflow-y: auto;
+        }
+
+        .active-screen { display: block; }
+
+        /* Menu */
+        .menu-content { text-align: center; }
+        .menu-title { font-size: 1.8rem; color: #ffb347; margin-bottom: 10px; font-weight: 800; }
+        .rules-box { 
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 15px; 
+            margin-bottom: 20px; text-align: left; line-height: 1.4; border-left: 4px solid #ffb347;
+            font-size: 0.85rem;
+        }
+        
+        /* Bloco de Desenvolvedores */
+        .credits-container {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 15px;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .credits-title { font-size: 0.75rem; font-weight: 800; color: #ffb347; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        .credits-list { font-size: 0.75rem; color: #cbd5e1; line-height: 1.5; }
+        .institution { font-size: 0.7rem; color: #a0aec0; margin-top: 10px; font-style: italic; }
+
+        /* Jogo */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 5px; }
+        .level-info { font-weight: 700; color: #ffb347; font-size: 0.85rem; }
+        .hearts-container { font-size: 1rem; letter-spacing: 2px; }
+
+        .game-board { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .group { background: rgba(0, 0, 0, 0.2); border-radius: 16px; padding: 8px; border: 1px solid rgba(255, 255, 255, 0.05); }
+        .group-title { text-align: center; color: #ffb347; margin-bottom: 10px; font-size: 0.6rem; font-weight: 800; text-transform: uppercase; min-height: 30px; display: flex; align-items: center; justify-content: center; }
+        
+        .cards-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+        
+        .card {
+            background: linear-gradient(145deg, #2a2a3c, #1e1e2e);
+            aspect-ratio: 1.8 / 1; border-radius: 12px; cursor: pointer;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; transition: all 0.2s; border: 1.5px solid transparent; padding: 5px;
+        }
+
+        .card.face-down::after { content: "?"; font-size: 1.2rem; color: rgba(255, 180, 71, 0.2); font-weight: 700; }
+        .card.face-down * { display: none; }
+        .card.selected { border: 1.5px solid #ffb347; transform: scale(1.02); background: rgba(255, 179, 71, 0.1); }
+        .card.face-up { background: #fff5e8; border: 1.5px solid #ffb347; color: #1a1a2e; }
+        .card.face-up .card-emoji { font-size: 1.4rem; }
+        .card.face-up .card-text { font-size: 0.6rem; font-weight: 800; margin-top: 2px; line-height: 1.1; }
+        .card.correct { background: #2a5a4a; border: 1.5px solid #6fbf4c; color: white; cursor: default; }
+
+        /* Pop-ups */
+        #feedback-area {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            width: 90%; max-width: 400px; z-index: 2000; display: none;
+        }
+        .feedback-toast {
+            background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(10px);
+            color: #ffb347; padding: 15px; border-radius: 20px;
+            border: 2px solid #ffb347; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .continue-hint {
+            margin-top: 10px; display: inline-block; padding: 8px 16px;
+            background: #ffb347; color: #1a1a2e; border-radius: 20px;
+            font-size: 0.7rem; font-weight: 900; animation: pulse 1.5s infinite;
+        }
+
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); display: none; align-items: center; justify-content: center; z-index: 3000; padding: 15px;
+        }
+        .modal-content { 
+            background: #1e293b; padding: 25px; border-radius: 24px; 
+            text-align: center; border: 1px solid #ffb347; width: 100%; max-width: 400px;
+        }
+        
+        button {
+            background: #ffb347; border: none; padding: 12px 25px; border-radius: 30px;
+            font-weight: 800; cursor: pointer; color: #1a1a2e; font-size: 0.9rem;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+        @media (max-height: 600px) {
+            .card { aspect-ratio: 2.3 / 1; }
+            .menu-title { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="menuScreen" class="screen active-screen">
+    <div class="menu-content">
+        <h1 class="menu-title">🧠 Jogo das Emoções</h1>
+        
+        <div class="rules-box">
+            <p><strong>Sua jornada:</strong> Conecte o que você sente com o que acontece no seu corpo e na sua vida.</p>
+            <br>
+            <p>✅ Escolha uma carta de qualquer lado.</p>
+            <p>✅ Busque o par que combina.</p>
+            <p>❤️ Ilumine os corações para avançar.</p>
+        </div>
+
+        <div class="credits-container">
+            <p class="credits-title">Desenvolvedores</p>
+            <p class="credits-list">
+                Edvaldo Monteiro • Leonardo da Silva • Nícolas Correia<br>
+                Renata Lima • Sabrina Polanco • Talita Oliveira<br>
+                Karla Camargo
+            </p>
+            <p class="institution">Processos Psicológicos Básicos<br>FAM - Faculdade das Américas</p>
+        </div>
+        
+        <button onclick="startGame()">INICIAR JORNADA</button>
+    </div>
+</div>
+
+<div id="gameScreen" class="screen">
+    <div class="header">
+        <div class="level-info">Nível <span id="levelDisplay">1</span></div>
+        <div class="hearts-container" id="heartsDisplay">🖤🖤🖤🖤🖤🖤</div>
+    </div>
+    <div class="game-board">
+        <div class="group">
+            <div class="group-title">😊 SINTO</div>
+            <div class="cards-grid" id="emotionsGrid"></div>
+        </div>
+        <div class="group">
+            <div class="group-title" id="rightGroupTitle">CORPO/VIDA</div>
+            <div class="cards-grid" id="situationsGrid"></div>
+        </div>
+    </div>
+</div>
+
+<div id="feedback-area">
+    <div class="feedback-toast" onclick="closeFeedback()">
+        <p id="feedback-text" style="font-weight: 600; font-size: 0.95rem;"></p>
+        <span class="continue-hint">TENTAR NOVAMENTE</span>
+    </div>
+</div>
+
+<div class="modal" id="gameModal">
+    <div class="modal-content">
+        <h2 id="modalTitle" style="color: #ffb347; margin-bottom: 10px; font-size: 1.3rem;"></h2>
+        <p id="modalBody" style="margin: 15px 0; color: #cbd5e1; line-height: 1.4; font-size: 0.95rem;"></p>
+        <button id="modalBtn" onclick="nextAction()">CONTINUAR</button>
+    </div>
+</div>
+
+<script>
+    const LEVELS = [
+        {
+            name: "Sinais do Corpo",
+            rightTitle: "Meu Corpo",
+            successMsg: "Incrível! Você começou a ouvir o que seu corpo está dizendo. Esse é o primeiro passo para o centramento.",
+            errorMessages: {
+                1: "A ansiedade dá sinais físicos de alerta. Tente outra vez.",
+                2: "A raiva traz calor e prontidão. Busque essa sensação.",
+                3: "A tristeza é pesada e lenta. Onde ela está no corpo?",
+                4: "O medo paralisa ou nos faz correr. Conecte essa reação.",
+                5: "A alegria expande e ilumina. Qual combina com isso?",
+                6: "O cansaço pede pausa. Procure o sinal de bateria acabando."
+            },
+            emotions: [
+                { id: 1, emo: "😰", name: "Ansiedade" }, { id: 2, emo: "😡", name: "Raiva" },
+                { id: 3, emo: "😔", name: "Tristeza" }, { id: 4, emo: "😨", name: "Medo" },
+                { id: 5, emo: "😊", name: "Alegria" }, { id: 6, emo: "😫", name: "Cansaço" }
+            ],
+            situations: [
+                { id: 1, text: "Coração acelerado e falta de ar" }, { id: 2, text: "Mãos fechadas e rosto quente" },
+                { id: 3, text: "Nó na garganta e olhos pesados" }, { id: 4, text: "Frio na barriga e pernas bambas" },
+                { id: 5, text: "Sorriso largo e corpo leve" }, { id: 6, text: "Costas pesadas e olhos fechando" }
+            ]
+        },
+        {
+            name: "Gatilhos do Dia",
+            rightTitle: "Gatilhos",
+            successMsg: "Muito bom! Identificar os gatilhos nos dá o poder de escolher como reagir, em vez de apenas sofrer.",
+            errorMessages: {
+                7: "A insegurança nasce da dúvida. Qual situação dispara isso?",
+                8: "A frustração surge no bloqueio. Tente achar esse momento.",
+                9: "A culpa é o peso de falhar com alguém. Busque o par.",
+                10: "O alívio é a saída da tensão. Qual traz essa paz?",
+                11: "A solidão é sentir um vazio. Onde ela está?",
+                12: "O orgulho é valorizar-se. Qual conquista reflete isso?"
+            },
+            emotions: [
+                { id: 7, emo: "😕", name: "Insegurança" }, { id: 8, emo: "😤", name: "Frustração" },
+                { id: 9, emo: "😓", name: "Culpa" }, { id: 10, emo: "😌", name: "Alívio" },
+                { id: 11, emo: "👤", name: "Solidão" }, { id: 12, emo: "🏆", name: "Orgulho" }
+            ],
+            situations: [
+                { id: 7, text: "Quando sinto que estão me julgando" }, { id: 8, text: "Quando planejo algo e dá tudo errado" },
+                { id: 9, text: "Quando acho que magoei alguém querido" }, { id: 10, text: "Quando resolvo um problema difícil" },
+                { id: 11, text: "Cercado de gente, mas sem ser visto" }, { id: 12, text: "Quando percebo que dei conta do desafio" }
+            ]
+        },
+        {
+            name: "Hora de Agir",
+            rightTitle: "Ações",
+            successMsg: "Jornada concluída! Você agora tem ferramentas para cuidar de si. Sentir é humano, cuidar é sabedoria.",
+            errorMessages: {
+                13: "A agonia pede interrupção. Qual ação ajuda a frear?",
+                14: "O desânimo melhora com pequenas doses de prazer.",
+                15: "A explosão precisa de tempo para esfriar. O que fazer?",
+                16: "A saudade pede conexão. Tente achar esse par.",
+                17: "O aperto no peito precisa ser compartilhado. Qual ação?",
+                18: "A paz deve ser protegida. Qual o par do silêncio?"
+            },
+            emotions: [
+                { id: 13, emo: "🌋", name: "Agonia" }, { id: 14, emo: "🌫️", name: "Desânimo" },
+                { id: 15, emo: "💣", name: "Explosão" }, { id: 16, emo: "📸", name: "Saudade" },
+                { id: 17, emo: "💔", name: "Aperto no peito" }, { id: 18, emo: "🌊", name: "Paz" }
+            ],
+            situations: [
+                { id: 13, text: "Parar tudo e contar até dez" }, { id: 14, text: "Fazer uma coisa pequena com prazer" },
+                { id: 15, text: "Sair de perto e caminhar um pouco" }, { id: 16, text: "Olhar uma foto ou mandar um 'oi'" },
+                { id: 17, text: "Escrever o que sinto ou desabafar" }, { id: 18, text: "Aproveitar o silêncio e nada fazer" }
+            ]
+        }
+    ];
+
+    let currentLevel = 0;
+    let firstCard = null;
+    let lastWrongCards = [];
+    let matchesFound = 0;
+    let isWaiting = false;
+
+    function startGame() {
+        document.getElementById('menuScreen').classList.remove('active-screen');
+        document.getElementById('gameScreen').classList.add('active-screen');
+        initGame();
+    }
+
+    function initGame() {
+        const level = LEVELS[currentLevel];
+        matchesFound = 0; firstCard = null; isWaiting = false;
+        document.getElementById('levelDisplay').innerText = (currentLevel + 1) + ": " + level.name;
+        document.getElementById('rightGroupTitle').innerText = level.rightTitle;
+        renderHearts();
+        const emoGrid = document.getElementById('emotionsGrid');
+        const sitGrid = document.getElementById('situationsGrid');
+        emoGrid.innerHTML = ''; sitGrid.innerHTML = '';
+        const shuffledEmotions = [...level.emotions].sort(() => Math.random() - 0.5);
+        const shuffledSituations = [...level.situations].sort(() => Math.random() - 0.5);
+        shuffledEmotions.forEach(item => emoGrid.appendChild(createCard(item.emo, item.name, item.id, 'emotion')));
+        shuffledSituations.forEach(item => sitGrid.appendChild(createCard('', item.text, item.id, 'situation')));
+    }
+
+    function createCard(emoji, text, id, type) {
+        const div = document.createElement('div');
+        div.className = 'card face-down';
+        div.dataset.id = id; div.dataset.type = type;
+        div.innerHTML = `<div class="card-emoji">${emoji}</div><div class="card-text">${text}</div>`;
+        div.onclick = () => handleCardClick(div);
+        return div;
+    }
+
+    function handleCardClick(card) {
+        if (isWaiting || card.classList.contains('correct') || card.classList.contains('face-up')) return;
+        if (!firstCard) {
+            firstCard = card; card.classList.remove('face-down'); card.classList.add('face-up', 'selected');
+            return;
+        }
+        if (firstCard === card) {
+            firstCard.classList.remove('face-up', 'selected'); firstCard.classList.add('face-down'); firstCard = null;
+            return;
+        }
+        if (firstCard.dataset.type === card.dataset.type) {
+            firstCard.classList.remove('face-up', 'selected'); firstCard.classList.add('face-down');
+            firstCard = card; card.classList.remove('face-down'); card.classList.add('face-up', 'selected');
+            return;
+        }
+
+        isWaiting = true;
+        card.classList.remove('face-down'); card.classList.add('face-up');
+        firstCard.classList.remove('selected');
+
+        if (firstCard.dataset.id === card.dataset.id) {
+            matchesFound++;
+            renderHearts();
+            document.querySelectorAll(`.card[data-id="${card.dataset.id}"]`).forEach(c => c.classList.add('correct'));
+            firstCard = null;
+            isWaiting = false;
+            if (matchesFound === 6) {
+                setTimeout(() => showModal("🌟 Nível Concluído!", LEVELS[currentLevel].successMsg), 500);
+            }
+        } else {
+            lastWrongCards = [firstCard, card];
+            const emoId = firstCard.dataset.type === 'emotion' ? firstCard.dataset.id : card.dataset.id;
+            showErrorFeedback(LEVELS[currentLevel].errorMessages[emoId]);
+            firstCard = null;
+        }
+    }
+
+    function showErrorFeedback(msg) {
+        document.getElementById('feedback-text').innerText = msg;
+        document.getElementById('feedback-area').style.display = 'block';
+    }
+
+    function closeFeedback() {
+        document.getElementById('feedback-area').style.display = 'none';
+        if (lastWrongCards.length > 0) {
+            lastWrongCards.forEach(c => { c.classList.add('face-down'); c.classList.remove('face-up'); });
+            lastWrongCards = [];
+        }
+        isWaiting = false;
+    }
+
+    function renderHearts() {
+        document.getElementById('heartsDisplay').innerHTML = "❤️".repeat(matchesFound) + "🖤".repeat(6 - matchesFound);
+    }
+
+    function showModal(title, body) {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalBody').innerText = body;
+        document.getElementById('gameModal').style.display = 'flex';
+        document.getElementById('modalBtn').innerText = (currentLevel === 2) ? "VOLTAR AO INÍCIO" : "PRÓXIMA ETAPA";
+    }
+
+    function nextAction() {
+        document.getElementById('gameModal').style.display = 'none';
+        if (currentLevel < 2) {
+            currentLevel++; initGame();
+        } else {
+            location.reload();
+        }
+    }
+</script>
+</body>
+</html>
